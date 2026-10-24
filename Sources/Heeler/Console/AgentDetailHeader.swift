@@ -51,8 +51,11 @@ struct AgentDetailHeader: View {
     @Environment(\.displayScale) private var displayScale
     /// The expanded title's height, which the grip under it resizes.
     @State private var titleHeight: CGFloat = AgentDetailHeader.controlSize
-    /// Set while a grip drag is under way, so the drag measures from where it began.
-    @State private var titleHeightAtDragStart: CGFloat?
+    /// Set while a grip drag is under way, so the drag measures from where it
+    /// began; gesture state, so a cancelled drag cannot leave it behind.
+    @GestureState private var titleHeightAtDragStart: CGFloat?
+    /// The height of the container the header floats over.
+    @State private var containerHeight: CGFloat = .infinity
     /// The width of the trailing controls, measured so the leading slot can match it.
     @State private var trailingWidth: CGFloat = 0
     /// The trailing safe inset, which a floating tab bar takes. The row starts
@@ -61,6 +64,13 @@ struct AgentDetailHeader: View {
 
     /// How tall the expanded title may grow, so it never covers most of the output.
     static let titleHeightRange: ClosedRange<CGFloat> = controlSize...240
+
+    /// The tallest the title may grow over a `containerHeight`-tall view: a
+    /// third of it at most, so a title sized on a tall display still leaves
+    /// the output readable on a short one.
+    static func maximumTitleHeight(containerHeight: CGFloat) -> CGFloat {
+        min(titleHeightRange.upperBound, max(titleHeightRange.lowerBound, containerHeight / 3))
+    }
 
     /// Both side slots are this wide while expanded, so the title sits at the
     /// header's centre rather than between controls of different widths.
@@ -83,6 +93,22 @@ struct AgentDetailHeader: View {
         }
         .padding(.leading, trailingSafeInset)
         .foregroundStyle(palette.foreground)
+        .background {
+            Color.clear
+                .containerRelativeFrame(.vertical)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                    // An initial zero-sized pass must not fold the title.
+                    if height > 0 { containerHeight = height }
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// The title's height as drawn: the chosen one, kept within the
+    /// container it floats over now, without forgetting the choice.
+    private var shownTitleHeight: CGFloat {
+        min(titleHeight, Self.maximumTitleHeight(containerHeight: containerHeight))
     }
 
     /// Back while expanded, on a slot as wide as the trailing controls. Empty
@@ -136,7 +162,7 @@ struct AgentDetailHeader: View {
             Text(title.title)
                 .font(.system(size: 15, weight: .semibold))
                 .multilineTextAlignment(.center)
-                .lineLimit(titleHeight > Self.controlSize ? nil : 1)
+                .lineLimit(shownTitleHeight > Self.controlSize ? nil : 1)
             HStack(spacing: 4) {
                 Text(title.harness)
                     .layoutPriority(1)
@@ -154,11 +180,12 @@ struct AgentDetailHeader: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, minHeight: Self.controlSize)
-        .frame(height: titleHeight)
+        .frame(height: shownTitleHeight)
         .headerGlass(in: .capsule)
-        .overlay(alignment: .bottom) { resizeGrip }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+        // After the title combines, so the grip stays its own adjustable element.
+        .overlay(alignment: .bottom) { resizeGrip }
     }
 
     /// A grip under the expanded title. Dragging it resizes the title, and
@@ -171,25 +198,31 @@ struct AgentDetailHeader: View {
             .padding(.horizontal, 24)
             .contentShape(.rect)
             .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        let start = titleHeightAtDragStart ?? titleHeight
-                        titleHeightAtDragStart = start
-                        titleHeight = Self.clampedTitleHeight(start + value.translation.height)
+                // Global: the grip moves with the height it sets, so a local
+                // translation would shrink under the finger.
+                DragGesture(coordinateSpace: .global)
+                    .updating($titleHeightAtDragStart) { _, start, _ in
+                        if start == nil { start = shownTitleHeight }
                     }
-                    .onEnded { _ in titleHeightAtDragStart = nil })
+                    .onChanged { value in
+                        let start = titleHeightAtDragStart ?? shownTitleHeight
+                        titleHeight = clampedTitleHeight(start + value.translation.height)
+                    })
             .accessibilityLabel("Resize title")
+            .accessibilityValue("\(Int(shownTitleHeight.rounded())) points")
             .accessibilityAdjustableAction { direction in
                 switch direction {
-                case .increment: titleHeight = Self.clampedTitleHeight(titleHeight + 24)
-                case .decrement: titleHeight = Self.clampedTitleHeight(titleHeight - 24)
+                case .increment: titleHeight = clampedTitleHeight(shownTitleHeight + 24)
+                case .decrement: titleHeight = clampedTitleHeight(shownTitleHeight - 24)
                 @unknown default: break
                 }
             }
     }
 
-    private static func clampedTitleHeight(_ height: CGFloat) -> CGFloat {
-        min(max(height, titleHeightRange.lowerBound), titleHeightRange.upperBound)
+    private func clampedTitleHeight(_ height: CGFloat) -> CGFloat {
+        min(
+            max(height, Self.titleHeightRange.lowerBound),
+            Self.maximumTitleHeight(containerHeight: containerHeight))
     }
 
     /// Swaps to the surface not showing, drawn with that surface's glyph.

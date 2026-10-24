@@ -69,6 +69,8 @@ struct AgentChatSurfaceView: View {
     @State private var closeErrorMessage: String?
     /// The Workspace drawer's panel, while the back header's menu owns it.
     @State private var isHeaderDrawerOpen = false
+    /// The back header's height, which a resized title makes taller.
+    @State private var backHeaderHeight = AgentDetailHeader.controlSize
     /// The Background Work strip's height over the staging bar; zero while
     /// it lists nothing.
     @State private var backgroundWorkHeight: CGFloat = 0
@@ -350,7 +352,7 @@ struct AgentChatSurfaceView: View {
                 if isBackHeaderExpanded {
                     drawer.openedFromHeader(
                         $isHeaderDrawerOpen,
-                        panelTop: backHeaderTop + AgentDetailHeader.controlSize + 8)
+                        panelTop: backHeaderTop + backHeaderHeight + 8)
                 } else {
                     drawer
                 }
@@ -402,6 +404,9 @@ struct AgentChatSurfaceView: View {
                 actions: backHeaderActions,
                 surfaceSwitch: AgentDetailSurfaceSwitch(current: .chat) { _ in showAgentTerminal() },
                 title: AgentDetailHeaderTitle(agent))
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                backHeaderHeight = $0
+            }
             .padding(.horizontal, 12)
             .padding(.top, backHeaderTop)
             .onChange(of: isBackHeaderExpanded) { _, expanded in
@@ -531,7 +536,7 @@ struct AgentChatSurfaceView: View {
 
     /// The back header's band over the conversation's top edge.
     private var headerObstruction: CGFloat {
-        4 + AgentDetailHeader.controlSize + 4
+        4 + backHeaderHeight + 4
     }
 
     @ViewBuilder

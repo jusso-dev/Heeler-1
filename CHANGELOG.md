@@ -43,7 +43,9 @@ Entries reference the pull request that made the change.
 - Chat's Collapse Steps and Jump to Latest buttons are glass icons like the
   detail header's, and Collapse Steps uses a clearer collapse glyph. (#480)
 - The expanded Agent title centres on the screen, and a grip under it
-  resizes it, so a long task title can wrap into the room you give it. (#485)
+  resizes it, so a long task title can wrap into the room you give it. It
+  grows to at most a third of the screen, so on a short display it still
+  leaves the output readable. (#485)
 
 ### Fixed
 
@@ -64,7 +66,9 @@ Entries reference the pull request that made the change.
   to the bottom right of the sidebar, on an iPhone Duo's inner display and in
   landscape on large iPhones, so they are within reach and the sidebar title
   stays whole. The sidebar can also be dragged wider, up to 600 points, on
-  regular-width layouts, including iPad. (#485)
+  regular-width layouts, including iPad, always leaving the terminal at
+  least 320 points beside it. On a wide iPhone, swiping in from the
+  terminal's left edge brings the sidebar back out, as on iPad. (#485)
 
 ## [0.1.15] - 2026-10-19
 

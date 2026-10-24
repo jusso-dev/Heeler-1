@@ -29,6 +29,19 @@ struct ConsoleSplitPresentationTests {
         #expect(width.minimum < width.ideal)
     }
 
+    @Test(arguments: [
+        (CGSize(width: 951, height: 669), CGFloat(600)),
+        (CGSize(width: 669, height: 951), CGFloat(349)),
+        (CGSize(width: 678, height: 466), CGFloat(358)),
+    ])
+    func sidebarCapLeavesTheDetailRoomOnDuoDisplays(size: CGSize, cap: CGFloat) {
+        // iPhone Duo's displays: the cap fits the window, never below the minimum.
+        let width = ConsoleSplitPresentation(horizontalSizeClass: .regular, size: size)
+            .sidebarWidth
+        #expect(width.maximum(fitting: size.width) == cap)
+        #expect(width.maximum(fitting: 500) == width.minimum)
+    }
+
     @Test(arguments: [false, true])
     func compactRetainsAutomaticVisibility(isLandscape: Bool) {
         let presentation = ConsoleSplitPresentation(

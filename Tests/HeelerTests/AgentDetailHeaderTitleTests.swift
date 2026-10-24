@@ -1,3 +1,4 @@
+import CoreGraphics
 import Testing
 
 @testable import Heeler
@@ -37,5 +38,16 @@ struct AgentDetailHeaderTitleTests {
         let title = AgentDetailHeaderTitle(makeAgent(kind: "mystery", cwd: ""))
         #expect(title.harness == "mystery")
         #expect(title.directory == nil)
+    }
+
+    /// A resized title keeps to a third of an iPhone Duo display's height,
+    /// within the grip's fixed range.
+    @Test(arguments: [
+        (CGFloat(951), CGFloat(240)),
+        (CGFloat(466), CGFloat(466) / 3),
+        (CGFloat(100), CGFloat(44)),
+    ])
+    func titleHeightFollowsTheContainer(containerHeight: CGFloat, maximum: CGFloat) {
+        #expect(AgentDetailHeader.maximumTitleHeight(containerHeight: containerHeight) == maximum)
     }
 }

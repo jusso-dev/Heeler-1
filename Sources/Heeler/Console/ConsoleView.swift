@@ -622,7 +622,7 @@ struct ConsoleView: View {
                     .navigationSplitViewColumnWidth(
                         min: presentation.sidebarWidth.minimum,
                         ideal: presentation.sidebarWidth.ideal,
-                        max: presentation.sidebarWidth.maximum)
+                        max: presentation.sidebarWidth.maximum(fitting: geometry.size.width))
                     .navigationBarTitleDisplayMode(usesSidebarNavigation ? .inline : .automatic)
                     .toolbar { toolbar(for: tab) }
                     // `toolbar(for:)` puts the list's title at the bar's
@@ -631,7 +631,8 @@ struct ConsoleView: View {
                     .bottomBar {
                         if usesSidebarNavigation {
                             sidebarFooter(for: tab)
-                        } else if horizontalSizeClass == .regular {
+                        } else if horizontalSizeClass == .regular, !hosts.hosts.isEmpty {
+                            // With no Host the foot has nothing to hold.
                             wideSidebarListMenus(for: tab)
                         }
                     }
@@ -1187,13 +1188,13 @@ struct ConsoleView: View {
             || stagedTerminalChromeScheme.map { $0 == colorScheme } ?? true
     }
 
-    /// What an edge swipe on an iPad's detail does instead of going back:
-    /// the detail stands beside its list there, so the swipe brings the
-    /// sidebar out rather than leaving the screen. Nil on an iPhone and in
-    /// a compact window, where the detail is pushed and the swipe goes back.
+    /// What an edge swipe on a regular-width detail does instead of going
+    /// back: the detail stands beside its list there, on an iPad or a wide
+    /// iPhone alike, so the swipe brings the sidebar out rather than leaving
+    /// the screen. Nil in a compact window, where the detail is pushed and
+    /// the swipe goes back.
     private func sidebarReveal(for tab: ConsoleTab) -> (@MainActor @Sendable () -> Void)? {
-        guard horizontalSizeClass == .regular, UIDevice.current.userInterfaceIdiom == .pad
-        else { return nil }
+        guard horizontalSizeClass == .regular else { return nil }
         return { [splitVisibilities = $splitVisibilities, reduceMotion] in
             withAnimation(reduceMotion ? nil : .snappy) {
                 splitVisibilities.wrappedValue[tab, default: ConsoleSplitVisibilityState()]

@@ -6,6 +6,15 @@ struct ConsoleSplitPresentation: Equatable {
         let minimum: CGFloat
         let ideal: CGFloat
         let maximum: CGFloat?
+
+        /// The detail keeps at least this much width beside a dragged-out sidebar.
+        static let minimumDetailWidth: CGFloat = 320
+
+        /// The cap within a `width`-wide window, so a sidebar dragged out on a
+        /// wide display cannot squeeze the detail away on a narrower one.
+        func maximum(fitting width: CGFloat) -> CGFloat? {
+            maximum.map { min($0, max(minimum, width - Self.minimumDetailWidth)) }
+        }
     }
 
     let hasUsableSize: Bool
@@ -32,7 +41,8 @@ struct ConsoleSplitPresentation: Equatable {
         }
         // The divider is user-draggable up to a fixed cap. A cap that follows the
         // window size would make a same-aspect resize a new presentation and reset
-        // the user's sidebar visibility.
+        // the user's sidebar visibility, so the call site fits the cap to the
+        // window instead (`ColumnWidth.maximum(fitting:)`).
         if isLandscape {
             defaultVisibility = .all
             sidebarWidth = ColumnWidth(minimum: 320, ideal: 380, maximum: 600)

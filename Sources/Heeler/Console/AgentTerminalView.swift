@@ -289,6 +289,8 @@ struct AgentTerminalView: View {
     @AppStorage("agent.back-header-expanded") private var isBackHeaderExpanded = false
     /// The Workspace drawer's panel, while the back header's menu owns it.
     @State private var isHeaderDrawerOpen = false
+    /// The back header's height, which a resized title makes taller.
+    @State private var backHeaderHeight = AgentDetailHeader.controlSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// This view's own window, for hosts without a scene root.
     @State private var mountedWindow = WindowReference()
@@ -1036,7 +1038,7 @@ struct AgentTerminalView: View {
                 if isBackHeaderExpanded {
                     drawer.openedFromHeader(
                         $isHeaderDrawerOpen,
-                        panelTop: backHeaderTop + AgentDetailHeader.controlSize + 8)
+                        panelTop: backHeaderTop + backHeaderHeight + 8)
                 } else {
                     drawer
                 }
@@ -1108,6 +1110,9 @@ struct AgentTerminalView: View {
                 actions: backHeaderActions,
                 surfaceSwitch: chatSurfaceSwitch,
                 title: AgentDetailHeaderTitle(agent))
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                backHeaderHeight = $0
+            }
             .environment(
                 \.colorScheme,
                 terminal.themes.selection(for: colorScheme).chromeColorScheme(for: colorScheme))
