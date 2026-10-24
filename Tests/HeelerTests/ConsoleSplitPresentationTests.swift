@@ -13,13 +13,33 @@ struct ConsoleSplitPresentationTests {
     @Test func regularLandscapeShowsBothColumns() {
         #expect(landscape.defaultVisibility == .all)
         #expect(landscape.usesRegularColumns)
-        #expect(landscape.sidebarWidth == .init(minimum: 320, ideal: 380, maximum: 440))
+        #expect(landscape.sidebarWidth == .init(minimum: 320, ideal: 380, maximum: 600))
     }
 
     @Test func regularPortraitShowsDetail() {
         #expect(portrait.defaultVisibility == .detailOnly)
         #expect(portrait.usesRegularColumns)
-        #expect(portrait.sidebarWidth == .init(minimum: 320, ideal: 380, maximum: 400))
+        #expect(portrait.sidebarWidth == .init(minimum: 320, ideal: 380, maximum: 600))
+    }
+
+    @Test func sidebarIsUserResizableAboveItsIdeal() {
+        // The divider can be dragged wider than the ideal, but not past the cap.
+        let width = landscape.sidebarWidth
+        #expect(width.maximum.map { $0 > width.ideal } == true)
+        #expect(width.minimum < width.ideal)
+    }
+
+    @Test(arguments: [
+        (CGSize(width: 951, height: 669), CGFloat(600)),
+        (CGSize(width: 669, height: 951), CGFloat(349)),
+        (CGSize(width: 678, height: 466), CGFloat(358)),
+    ])
+    func sidebarCapLeavesTheDetailRoomOnDuoDisplays(size: CGSize, cap: CGFloat) {
+        // iPhone Duo's displays: the cap fits the window, never below the minimum.
+        let width = ConsoleSplitPresentation(horizontalSizeClass: .regular, size: size)
+            .sidebarWidth
+        #expect(width.maximum(fitting: size.width) == cap)
+        #expect(width.maximum(fitting: 500) == width.minimum)
     }
 
     @Test(arguments: [false, true])

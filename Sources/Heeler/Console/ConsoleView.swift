@@ -622,14 +622,19 @@ struct ConsoleView: View {
                     .navigationSplitViewColumnWidth(
                         min: presentation.sidebarWidth.minimum,
                         ideal: presentation.sidebarWidth.ideal,
-                        max: presentation.sidebarWidth.maximum)
+                        max: presentation.sidebarWidth.maximum(fitting: geometry.size.width))
                     .navigationBarTitleDisplayMode(usesSidebarNavigation ? .inline : .automatic)
                     .toolbar { toolbar(for: tab) }
                     // `toolbar(for:)` puts the list's title at the bar's
                     // leading edge itself.
                     .toolbar(removing: usesSidebarNavigation ? .title : nil)
                     .bottomBar {
-                        if usesSidebarNavigation { sidebarFooter(for: tab) }
+                        if usesSidebarNavigation {
+                            sidebarFooter(for: tab)
+                        } else if horizontalSizeClass == .regular, !hosts.hosts.isEmpty {
+                            // With no Host the foot has nothing to hold.
+                            wideSidebarListMenus(for: tab)
+                        }
                     }
                     // iPadOS 27 draws the system's button on its own glass;
                     // the sidebar has a bare one beside its others, and the
@@ -880,13 +885,16 @@ struct ConsoleView: View {
             }
             .toolbarItemBackground(.hidden)
         }
-        // A sidebar keeps its list menus at its foot.
-        if !usesSidebarNavigation, filtersByHost, !foldsHostFilter {
+        // A sidebar keeps its list menus at its foot. A wide iPhone's sidebar
+        // does too, on its trailing edge (`wideSidebarListMenus`), so its bar
+        // keeps only the title. Compact width keeps them in the bar.
+        if !usesSidebarNavigation, horizontalSizeClass != .regular,
+           filtersByHost, !foldsHostFilter {
             ToolbarItem(placement: .primaryAction) {
                 hostFilterMenu.hoverEffect(.highlight)
             }
         }
-        if !usesSidebarNavigation, !hosts.hosts.isEmpty {
+        if !usesSidebarNavigation, horizontalSizeClass != .regular, !hosts.hosts.isEmpty {
             ToolbarItem(placement: .primaryAction) {
                 presentationMenu(for: tab).hoverEffect(.highlight)
             }
@@ -909,11 +917,31 @@ struct ConsoleView: View {
                 .buttonStyle(SidebarIconButtonStyle())
             }
             .toolbarItemBackground(.hidden)
-        } else if !hosts.hosts.isEmpty {
+        } else if horizontalSizeClass != .regular, !hosts.hosts.isEmpty {
             ToolbarItem(placement: .primaryAction) {
                 newItemButton(for: tab).hoverEffect(.highlight)
             }
         }
+    }
+
+    /// A wide iPhone's list menus and new-item button, at the sidebar's foot
+    /// on its trailing edge: out of the title's way, and within reach.
+    private func wideSidebarListMenus(for tab: ConsoleTab) -> some View {
+        HStack(spacing: 4) {
+            Spacer(minLength: 0)
+            if filtersByHost, !foldsHostFilter {
+                hostFilterMenu.roundPointerHighlight()
+            }
+            if !hosts.hosts.isEmpty {
+                presentationMenu(for: tab).roundPointerHighlight()
+                newItemButton(for: tab)
+            }
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(SidebarIconButtonStyle())
+        .menuStyle(.button)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
     }
 
     /// One button for both lists, so a sidebar switching lists keeps its
@@ -1160,13 +1188,13 @@ struct ConsoleView: View {
             || stagedTerminalChromeScheme.map { $0 == colorScheme } ?? true
     }
 
-    /// What an edge swipe on an iPad's detail does instead of going back:
-    /// the detail stands beside its list there, so the swipe brings the
-    /// sidebar out rather than leaving the screen. Nil on an iPhone and in
-    /// a compact window, where the detail is pushed and the swipe goes back.
+    /// What an edge swipe on a regular-width detail does instead of going
+    /// back: the detail stands beside its list there, on an iPad or a wide
+    /// iPhone alike, so the swipe brings the sidebar out rather than leaving
+    /// the screen. Nil in a compact window, where the detail is pushed and
+    /// the swipe goes back.
     private func sidebarReveal(for tab: ConsoleTab) -> (@MainActor @Sendable () -> Void)? {
-        guard horizontalSizeClass == .regular, UIDevice.current.userInterfaceIdiom == .pad
-        else { return nil }
+        guard horizontalSizeClass == .regular else { return nil }
         return { [splitVisibilities = $splitVisibilities, reduceMotion] in
             withAnimation(reduceMotion ? nil : .snappy) {
                 splitVisibilities.wrappedValue[tab, default: ConsoleSplitVisibilityState()]

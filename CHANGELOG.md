@@ -42,6 +42,10 @@ Entries reference the pull request that made the change.
   Collapse, so the header covers less output. (#480)
 - Chat's Collapse Steps and Jump to Latest buttons are glass icons like the
   detail header's, and Collapse Steps uses a clearer collapse glyph. (#480)
+- The expanded Agent title centres on the screen, and a grip under it
+  resizes it, so a long task title can wrap into the room you give it. It
+  grows to at most a third of the screen, so on a short display it still
+  leaves the output readable. (#485)
 
 ### Fixed
 
@@ -58,6 +62,13 @@ Entries reference the pull request that made the change.
   fades out at the edge it scrolls past. (#480)
 - Show long Composer notices whole, up to six lines, instead of cutting
   them after three, which could hide what to do next. (#482)
+- Move the Agents and Terminals filter, presentation and new-item controls
+  to the bottom right of the sidebar, on an iPhone Duo's inner display and in
+  landscape on large iPhones, so they are within reach and the sidebar title
+  stays whole. The sidebar can also be dragged wider, up to 600 points, on
+  regular-width layouts, including iPad, always leaving the terminal at
+  least 320 points beside it. On a wide iPhone, swiping in from the
+  terminal's left edge brings the sidebar back out, as on iPad. (#485)
 
 ## [0.1.15] - 2026-10-19
 
